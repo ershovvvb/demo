@@ -1,0 +1,79 @@
+{{- $egress_const := .Values.egress_const }}
+
+{{- range $hostNumber, $host := .Values.hosts }}
+{{- if not $host.skip }}
+
+{{- $hostCerts := (eq $host.spec.useCerts "Custom") | ternary
+      $host.spec.certs
+      $.Values.defaultCerts
+}}
+
+{{- $certFilenames := (eq $host.spec.useCerts "SecMan") | ternary
+      (dict
+        "caCert" $host.spec.caCertName
+        "certsCrt" $host.spec.certName
+        "certsKey" $host.spec.keyName)
+      (dict
+        "caCert" "ca-chain.cert.pem"
+        "certsCrt" "tls.crt"
+        "certsKey" "tls.key")
+}}
+{{- $certPaths := (dict
+      "caCert" (printf "/etc/istio/egressgateway%d-ca-certs/%s" $hostNumber (index $certFilenames "caCert"))
+      "certsCrt" (printf "/etc/istio/egressgateway%d-certs/%s" $hostNumber (index $certFilenames "certsCrt"))
+      "certsKey" (printf "/etc/istio/egressgateway%d-certs/%s" $hostNumber (index $certFilenames "certsKey"))
+) }}
+
+{{- $hostPartOfContext := dict
+      "hostNumber" $hostNumber
+      "host" $host.spec
+      "certs" $hostCerts
+      "certPaths" $certPaths
+}}
+{{- $constPartOfContext := required "Unknown protocol" (index $egress_const.byProtocol $host.spec.protocol) }}
+{{- if $host.overrideContext }}
+{{/* Allow overwriting, second argument takes precedence */}}
+{{- $constPartOfContext = mustMergeOverwrite $constPartOfContext $host.overrideContext }}
+{{- end }}
+
+{{/* Do not allow overwriting, first argument takes precedence */}}
+{{- $context := mustMerge $hostPartOfContext $constPartOfContext }}
+{{- $scope := dict
+      "Chart" $.Chart
+      "Release" $.Release
+      "context" $context
+}}
+
+---
+{{ template "egress.service" $scope }}
+
+---
+{{ template "egress.gateway" $scope }}
+
+---
+{{ template "egress.service_entry" $scope }}
+
+---
+{{ template "egress.virtual_service" $scope }}
+
+{{- if $context.gatewayMtls }}
+---
+{{ template "egress.gateway_destination_rule" $scope }}
+{{- end }}
+
+{{- if $context.externalMtls }}
+---
+{{ template "egress.external_host_destination_rule" $scope }}
+{{- if (ne $context.host.useCerts "SecMan") }}
+---
+{{ template "egress.gateway_certs" $scope }}
+{{- end }}{{/* if (ne $context.host.useCerts "SecMan" ) */}}
+{{- end }}{{/* if $context.externalMtls */}}
+
+{{- if (and $.Values.ott.enabled $context.host.ottEnabled) }}
+---
+{{ template "egress.ott_envoy_filter" $scope }}
+{{- end }}
+
+{{- end }}{{/* if not $host.skip */}}
+{{- end }}{{/* range $hostNumber, $host := .Values.hosts */}}

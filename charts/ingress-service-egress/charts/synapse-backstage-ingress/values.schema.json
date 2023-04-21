@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Certs": {
+      "properties": {
+        "caCert": { "type": "string" },
+        "certsCrt": { "type": "string" },
+        "certsKey": { "type": "string" }
+      },
+      "required": [
+        "caCert",
+        "certsCrt",
+        "certsKey"
+      ]
+    },
+    "IngressHostExternal": {
+      "properties": {
+        "shard": {
+          "type": "string"
+        },
+        "balance": {
+          "type": "string"
+        },
+        "disableCookies": {
+          "type": "boolean"
+        },
+        "timeoutMs": {
+          "type": "integer"
+        },
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "number",
+          "minimum": 1024
+        },
+        "ottEnabled": {
+          "type": "boolean"
+        },
+        "protocol": {
+          "type": "string",
+          "enum": [
+            "http",
+            "https"
+          ]
+        },
+        "useCerts": {
+          "type": "string",
+          "enum": [
+            "None",
+            "Default",
+            "Custom",
+            "SecMan"
+          ]
+        }
+      },
+      "required": [
+        "shard",
+        "balance",
+        "disableCookies",
+        "timeoutMs",
+        "host",
+        "port",
+        "protocol",
+        "useCerts"
+      ],
+      "dependencies": {
+        "ottEnabled": {
+          "oneOf": [
+            {
+              "properties": {
+                "ottEnabled": { "const": false }
+              }
+            },
+            {
+              "properties": {
+                "ottEnabled": { "const": true },
+                "protocol": { "enum": [ "https" ] }
+              }
+            }
+          ]
+        },
+        "protocol": {
+          "oneOf": [
+            {
+              "properties": {
+                "protocol": { "const": "http" },
+                "useCerts": { "const": "None" }
+              }
+            },
+            {
+              "properties": {
+                "protocol": {"const": "https" },
+                "useCerts": { "enum": [ "Default", "Custom", "SecMan" ] }
+              }
+            }
+          ]
+        },
+        "useCerts": {
+          "oneOf": [
+            {
+              "properties": {
+                "useCerts": { "enum": [ "None", "Default" ] }
+              }
+            },
+            {
+              "properties": {
+                "useCerts": { "const": "Custom" },
+                "certs": { "$ref": "#/definitions/Certs" }
+              },
+              "required": [ "certs" ]
+            },
+            {
+              "properties": {
+                "useCerts": { "const": "SecMan" },
+                "secretPath": { "type": "string" },
+                "certName": { "type": "string" },
+                "caCertName ": { "type": "string" },
+                "keyName": { "type": "string" }
+              },
+              "required": [ "secretPath", "certName", "caCertName", "keyName" ]
+            }
+          ]
+        }
+      }
+    },
+    "IngressHost": {
+      "properties": {
+        "internalHost": {
+          "type": "string"
+        },
+        "internalPort": {
+          "type": "number"
+        },
+        "internalPrefix": {
+          "type": "string"
+        },
+        "ext": {
+          "$ref": "#/definitions/IngressHostExternal"
+        }
+      },
+      "required": [
+        "internalHost",
+        "internalPort",
+        "internalPrefix",
+        "ext"
+      ]
+    }
+  },
+  "properties": {
+    "defaultCerts": {
+      "$ref": "#/definitions/Certs"
+    },
+    "ott": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" }
+      },
+      "required": [ "enabled" ]
+    },
+    "hosts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "skip": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [ "skip" ],
+        "dependencies": {
+          "skip": {
+            "oneOf": [
+              {
+                "properties": { "skip": { "const": true } }
+              },
+              {
+                "properties": {
+                  "skip": { "const": false },
+                  "spec": { "$ref": "#/definitions/IngressHost" }
+                },
+                "required": [ "spec" ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "ott",
+    "hosts"
+  ]
+}

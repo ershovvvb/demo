@@ -1,0 +1,28 @@
+{{/* Input: .Release, .Chart, .context */}}
+{{- define "ingress.gateway" }}
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: ingressgateway{{ .context.hostNumber }}-gw
+  labels:
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    istio: ingressgateway-{{.Release.Namespace}}
+  servers:
+    - hosts:
+        - '*'
+      port:
+        name: {{.context.host.ext.protocol}}-{{.context.host.ext.port}}
+        number: {{.context.host.ext.port}}
+        protocol: {{.context.host.ext.protocol}}
+      {{- if .context.externalMtls }}
+      tls:
+        mode: MUTUAL
+        caCertificates: {{.context.certPaths.caCert}}
+        serverCertificate: {{.context.certPaths.certsCrt}}
+        privateKey: {{.context.certPaths.certsKey}}
+      {{- end }}
+  {{- end }}{{/* define "ingress.gateway" */}}

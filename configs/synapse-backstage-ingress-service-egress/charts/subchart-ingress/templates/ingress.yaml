@@ -1,0 +1,91 @@
+---
+# Source: synapse-backstage-ingress-service-egress/charts/subchart-ingress/templates/ingress.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingressgateway0-svc
+  labels:
+    app: ingressgateway-demo-second
+    istio: ingressgateway-demo-second
+    helm.sh/chart: subchart-ingress-0.1.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: ingress
+spec:
+  ports:
+    - name: status-port
+      port: 15021
+      protocol: TCP
+      targetPort: 15021
+    - name: http-8079
+      port: 8079
+  selector:
+    app: ingressgateway-demo-second
+    istio: ingressgateway-demo-second
+---
+# Source: synapse-backstage-ingress-service-egress/charts/subchart-ingress/templates/ingress.yaml
+kind: Service
+apiVersion: v1
+metadata:
+  name: ingress-gw0-svc
+  annotations:
+    kubernetes.io/elb.class: union
+    kubernetes.io/session-affinity-mode: SOURCE_IP
+    kubernetes.io/elb.id: 21ab07da-0ada-451e-b10d-45754b680519
+    kubernetes.io/elb.subnet-id: 2f5be158-9862-4758-8d39-a8abbc3a3ba2
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+    - name: http-8079
+      protocol: TCP
+      port: 8079
+      targetPort: 8079
+  selector:
+    app: ingressgateway-demo-second
+    istio: ingressgateway-demo-second
+  type: LoadBalancer
+---
+# Source: synapse-backstage-ingress-service-egress/charts/subchart-ingress/templates/ingress.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: ingressgateway0-gw
+  labels:
+    helm.sh/chart: subchart-ingress-0.1.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: ingress
+spec:
+  selector:
+    istio: ingressgateway-demo-second
+  servers:
+    - hosts:
+        - '*'
+      port:
+        name: http-8079
+        number: 8079
+        protocol: http
+---
+# Source: synapse-backstage-ingress-service-egress/charts/subchart-ingress/templates/ingress.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: internal-host0-vs
+  labels:
+    helm.sh/chart: subchart-ingress-0.1.0
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: ingress
+spec:
+  exportTo:
+    - .
+  gateways:
+    - ingressgateway0-gw
+  hosts:
+    - '*'
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: create-find-order
+            port:
+              number: 8080

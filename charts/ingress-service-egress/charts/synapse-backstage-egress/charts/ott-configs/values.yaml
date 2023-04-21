@@ -1,0 +1,20 @@
+settingsConfigMap: #ott-settings
+logbackConfigMap: #ott-logback-configmap
+passwordsSecret: #ott-passwords
+certsSecret: #ott-certs
+
+moduleId: #ott-module-id
+operMode: #'sign|validate'
+
+# Defaults in commonConst.ott.defaults.certstore[moduleId], in separate values.yaml
+certstoreContent: #base64
+certstorePwd: #base64
+certstorePrivateKeyPwd: #base64
+
+# Defaults in commonConst.ott.defaults.truststore, in separate values.yaml
+truststoreContent: #base64
+truststorePwd: #base64
+
+# Defaults in commonConst.ott.defaults, in separate values.yaml
+serviceHosts: #'ip:port,ip:port'
+serviceUrl: #http://host:port/ott-service/rest/token

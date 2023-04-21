@@ -1,0 +1,25 @@
+{{/* Input: .Release, .Chart, .context */}}
+{{- define "egress.service" -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: egressgateway{{ .context.hostNumber }}-svc
+  labels:
+    app: egressgateway-{{ .Release.Namespace }}
+    istio: egressgateway-{{ .Release.Namespace }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  ports:
+    - name: status-port
+      port: 15021
+      protocol: TCP
+      targetPort: 15021
+    - name: {{ .context.gatewayProtocol | lower }}-egr-{{ .context.host.egressPort }}
+      port: {{ .context.host.egressPort }}
+      protocol: TCP
+  selector:
+    app: egressgateway-{{ .Release.Namespace }}
+    istio: egressgateway-{{ .Release.Namespace }}
+{{- end -}}

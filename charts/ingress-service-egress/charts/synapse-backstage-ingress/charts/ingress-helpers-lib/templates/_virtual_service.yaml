@@ -1,0 +1,27 @@
+{{/* Input: .Release, .Chart, .context */}}
+{{- define "ingress.virtual_service" }}
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: internal-host{{ .context.hostNumber }}-vs
+  labels:
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  exportTo:
+    - .
+  gateways:
+    - ingressgateway{{.context.hostNumber}}-gw
+  hosts:
+    - '*'
+  http:
+    - match:
+        - uri:
+            prefix: {{.context.host.internalPrefix}}
+      route:
+        - destination:
+            host: {{.context.host.internalHost}}
+            port:
+              number: {{.context.host.internalPort}}
+{{- end }}{{/* define "ingress.virtual_service" */}}

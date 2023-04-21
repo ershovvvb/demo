@@ -1,0 +1,30 @@
+{{/* Input: .Release, .Chart, .context */}}
+{{- define "egress.gateway" -}}
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: egressgateway{{ .context.hostNumber }}-gw
+  labels:
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    istio: egressgateway-{{ .Release.Namespace }}
+  servers:
+    - hosts:
+        - {{ or .context.accessHost .context.host.externalHost }}
+      port:
+        name: {{ .context.gatewayProtocol | lower }}-{{ .context.host.egressPort }}
+        number: {{ .context.host.egressPort }}
+        protocol: {{ .context.gatewayProtocol }}
+      {{- if .context.gatewayTlsMode }}
+      tls:
+        mode: {{ .context.gatewayTlsMode }}
+        {{- if eq .context.gatewayTlsMode "MUTUAL" }}
+        caCertificates: {{ .context.certPaths.caCert }}
+        clientCertificate: {{ .context.certPaths.certsCrt }}
+        privateKey: {{ .context.certPaths.certsKey }}
+        {{- end }}
+      {{- end }}
+{{- end -}}

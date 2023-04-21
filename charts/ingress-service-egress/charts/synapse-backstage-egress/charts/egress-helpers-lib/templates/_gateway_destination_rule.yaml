@@ -1,0 +1,26 @@
+{{/* Input: .Release, .Chart, .context */}}
+{{- define "egress.gateway_destination_rule" }}
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: egressgateway{{ .context.hostNumber }}-dr
+  labels:
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  exportTo:
+    - .
+  host: egressgateway{{ .context.hostNumber }}-svc
+  trafficPolicy:
+    portLevelSettings:
+      - port:
+          number: {{ .context.host.egressPort }}
+        {{- if .context.gatewayMtls }}
+        tls:
+          mode: 'ISTIO_MUTUAL'
+          {{- if .context.needsSni }}
+          sni: {{ or .context.accessHost .context.host.externalHost }}
+          {{- end }}
+        {{- end }}
+{{- end }}

@@ -1,0 +1,161 @@
+exports:
+  export_egress_const:
+    egress_const:
+      byProtocol:
+        http:
+          tlsEnabled: false
+          gatewayTlsMode: ''
+          gatewayMtls: false
+          externalMtls: false
+          needsSni: false
+          needsAccessPort: false
+          clientProtocol: HTTP
+          gatewayProtocol: HTTP
+          externalProtocol: HTTP
+          virtualserviceMatcher: http
+        tcp:
+          tlsEnabled: false
+          gatewayTlsMode: ''
+          gatewayMtls: false
+          externalMtls: false
+          needsSni: false
+          needsAccessPort: false
+          clientProtocol: TCP
+          gatewayProtocol: TCP
+          externalProtocol: TCP
+          virtualserviceMatcher: tcp
+        https:
+          tlsEnabled: true
+          gatewayTlsMode: ''
+          gatewayMtls: false
+          externalMtls: true
+          needsSni: true
+          needsAccessPort: true
+          clientProtocol: HTTP
+          gatewayProtocol: HTTP
+          externalProtocol: HTTPS
+          virtualserviceMatcher: http
+        tcp-external-mtls:
+          tlsEnabled: true
+          gatewayTlsMode: ''
+          gatewayMtls: false
+          externalMtls: true
+          needsSni: true
+          needsAccessPort: true
+          clientProtocol: TCP
+          gatewayProtocol: TCP
+          externalProtocol: TLS
+          virtualserviceMatcher: tcp
+        https-internal-mtls:
+          tlsEnabled: true
+          gatewayTlsMode: ISTIO_MUTUAL
+          gatewayMtls: true
+          externalMtls: true
+          needsSni: true
+          needsAccessPort: true
+          clientProtocol: HTTP
+          gatewayProtocol: HTTPS
+          externalProtocol: HTTPS
+          virtualserviceMatcher: http
+        tcp-full-mtls:
+          tlsEnabled: true
+          gatewayTlsMode: ISTIO_MUTUAL
+          gatewayMtls: true
+          externalMtls: true
+          needsSni: true
+          needsAccessPort: true
+          clientProtocol: TCP
+          gatewayProtocol: TLS
+          externalProtocol: TLS
+          virtualserviceMatcher: tcp
+        tls:
+          tlsEnabled: true
+          gatewayTlsMode: PASSTHROUGH
+          gatewayMtls: false
+          externalMtls: false
+          needsSni: false
+          needsAccessPort: false
+          clientProtocol: TLS
+          gatewayProtocol: TLS
+          externalProtocol: TLS
+          virtualserviceMatcher: tls
+#      tlsEnabled:
+#        http: false
+#        tcp: false
+#        https: true
+#        tcp-external-mtls: true
+#        https-internal-mtls: true
+#        tcp-full-mtls: true
+#        tls: true
+#      gatewayTlsMode:
+#        http: ''
+#        tcp: ''
+#        https: ''
+#        tcp-external-mtls: ''
+#        https-internal-mtls: 'ISTIO_MUTUAL'
+#        tcp-full-mtls: 'ISTIO_MUTUAL'
+#        tls: 'PASSTHROUGH'
+#      gatewayMtls:
+#        http: false
+#        tcp: false
+#        https: false
+#        tcp-external-mtls: false
+#        https-internal-mtls: true
+#        tcp-full-mtls: true
+#        tls: false
+#      externalMtls:
+#        http: false
+#        tcp: false
+#        https: true
+#        tcp-external-mtls: true
+#        https-internal-mtls: true
+#        tcp-full-mtls: true
+#        tls: false
+#      needsSni:
+#        http: false
+#        tcp: false
+#        https: true
+#        https-internal-mtls: true
+#        tcp-external-mtls: true
+#        tcp-full-mtls: true
+#        tls: false
+#      needsAccessPort:
+#        http: false
+#        https: true
+#        https-internal-mtls: true
+#        tcp: false
+#        tcp-external-mtls: true
+#        tcp-full-mtls: true
+#        tls: false
+#      clientProtocol:
+#        http: 'HTTP'
+#        https: 'HTTP'
+#        https-internal-mtls: 'HTTP'
+#        tcp: 'TCP'
+#        tcp-external-mtls: 'TCP'
+#        tcp-full-mtls: 'TCP'
+#        tls: 'TLS'
+#      gatewayProtocol:
+#        http: 'HTTP'
+#        https: 'HTTP'
+#        https-internal-mtls: 'HTTPS'
+#        tcp: 'TCP'
+#        tcp-external-mtls: 'TCP'
+#        tcp-full-mtls: 'TLS'
+#        tls: 'TLS'
+#      externalProtocol:
+#        http: 'HTTP'
+#        https: 'HTTPS'
+#        https-internal-mtls: 'HTTPS'
+#        tcp: 'TCP'
+#        tcp-external-mtls: 'TLS'
+#        tcp-full-mtls: 'TLS'
+#        tls: 'TLS'
+#      virtualserviceMatcher:
+#        http: 'http'
+#        https: 'http'
+#        https-internal-mtls: 'http'
+#        tcp: 'tcp'
+#        tcp-external-mtls: 'tcp'
+#        tcp-full-mtls: 'tcp'
+#        tls: 'tls'

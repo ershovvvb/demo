@@ -1,0 +1,6 @@
+exports:
+  export_ingress_const:
+    ingress_const:
+      externalMtls:
+        http: false
+        https: true

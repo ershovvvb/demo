@@ -1,0 +1,35 @@
+{{/* Input: .Release, .Chart, .context */}}
+{{- define "egress.service_entry" }}
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: egressgateway{{ .context.hostNumber }}-se
+  labels:
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  exportTo:
+    - .
+  hosts:
+    - {{ .context.host.externalHost }}
+  ports:
+    - number: {{ .context.host.externalPort }}
+      name: {{ .context.externalProtocol | lower }}-{{ .context.host.externalPort }}
+      protocol: {{ .context.externalProtocol }}
+    {{- if .context.needsAccessPort }}
+    - number: {{ .context.host.accessPort }}
+      name: {{ .context.clientProtocol | lower }}-{{ .context.host.accessPort }}
+      protocol: {{ .context.clientProtocol }}
+    {{- end }}
+  {{- if .context.host.externalIp }}
+  resolution: STATIC
+  addresses:
+    - {{ .context.host.externalIp }}
+  endpoints:
+    - address: {{ .context.host.externalIp }}
+  {{- else }}
+  resolution: DNS
+  {{- end }}
+  location: MESH_EXTERNAL
+{{- end }}

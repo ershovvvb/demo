@@ -1,0 +1,9 @@
+dependencies:
+- name: synapse-backstage-ingress
+  repository: ""
+  version: 0.1.0
+- name: synapse-backstage-egress
+  repository: ""
+  version: 0.1.0
+digest: sha256:5486bed70a79837fddefaeb9ec6162002093ebe7cc2d5869c2c7f32586133cac
+generated: "2023-04-21T13:08:57.929048984Z"

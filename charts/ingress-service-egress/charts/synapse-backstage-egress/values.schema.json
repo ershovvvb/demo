@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Certs": {
+      "properties": {
+        "caCert": { "type": "string" },
+        "certsCrt": { "type": "string" },
+        "certsKey": { "type": "string" }
+      },
+      "required": [
+          "caCert",
+          "certsCrt",
+          "certsKey"
+      ]
+    },
+    "EgressHost": {
+      "properties": {
+        "externalHost": {
+          "type": "string"
+        },
+        "externalPort": {
+          "type": "number"
+        },
+        "egressPort": {
+          "type": "number",
+          "minimum": 1024
+        },
+        "ottEnabled": {
+          "type": "boolean"
+        },
+        "protocol": {
+          "type": "string",
+          "enum": [
+              "http",
+              "https",
+              "https-internal-mtls",
+              "tcp",
+              "tcp-external-mtls",
+              "tcp-full-mtls",
+              "tls"
+          ]
+        },
+        "useCerts": {
+          "type": "string",
+          "enum": [
+              "None",
+              "Default",
+              "Custom",
+              "SecMan"
+          ]
+        }
+      },
+      "required": [
+          "externalHost",
+          "externalPort",
+          "egressPort",
+          "protocol",
+          "useCerts"
+      ],
+      "dependencies": {
+        "ottEnabled": {
+          "oneOf": [
+            {
+              "properties": {
+                "ottEnabled": { "const": false }
+              }
+            },
+            {
+              "properties": {
+                "ottEnabled": { "const": true },
+                "protocol": { "enum": ["https", "https-internal-mtls", "tcp-external-mtls", "tcp-full-mtls"] }
+              }
+            }
+          ]
+        },
+        "protocol": {
+          "oneOf": [
+            {
+              "properties": {
+                "protocol": { "enum": ["http", "tcp", "tls"] },
+                "useCerts": { "const": "None" }
+              }
+            },
+            {
+              "properties": {
+                "protocol": { "enum": ["https", "https-internal-mtls", "tcp-external-mtls", "tcp-full-mtls"] },
+                "useCerts": { "enum": [ "Default", "Custom", "SecMan" ] },
+                "noAccessPort": {
+                  "type": "boolean"
+                }
+              },
+              "required": ["noAccessPort"]
+            }
+          ]
+        },
+        "noAccessPort": {
+          "oneOf": [
+            {
+              "properties": {
+                "noAccessPort": { "const": false },
+                "accessPort": {
+                  "type": "integer",
+                  "minimal": 1024
+                }
+              },
+              "required": [ "accessPort" ]
+            },
+            {
+              "properties": {
+                "noAccessPort": {
+                  "const": true
+                }
+              }
+            }
+          ]
+        },
+        "useCerts": {
+          "oneOf": [
+            {
+              "properties": {
+                "useCerts": { "enum": [ "None", "Default" ] }
+              }
+            },
+            {
+              "properties": {
+                "useCerts": { "const": "Custom" },
+                "certs": { "$ref": "#/definitions/Certs" }
+              },
+              "required": [ "certs" ]
+            },
+            {
+              "properties": {
+                "useCerts": { "const": "SecMan" },
+                "secretPath": { "type": "string" },
+                "certName": { "type": "string" },
+                "caCertName ": { "type": "string" },
+                "keyName": { "type": "string" }
+              },
+              "required": [ "secretPath", "certName", "caCertName", "keyName" ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "properties": {
+    "defaultCerts": {
+      "$ref": "#/definitions/Certs"
+    },
+    "ott": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" }
+      },
+      "required": [ "enabled" ]
+    },
+    "hosts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "skip": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [ "skip" ],
+        "dependencies": {
+          "skip": {
+            "oneOf": [
+              {
+                "properties": { "skip": { "const": true } }
+              },
+              {
+                "properties": {
+                  "skip": { "const": false },
+                  "spec": { "$ref": "#/definitions/EgressHost" }
+                },
+                "required": [ "spec" ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "required": [
+      "ott",
+      "hosts"
+  ]
+}

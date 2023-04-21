@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "OttConfig": {
+      "properties": {
+        "image": {
+          "type": "string"
+        },
+        "settingsConfigMap": {
+          "type": "string"
+        },
+        "logbackConfigMap": {
+          "type": "string"
+        },
+        "passwordsSecret": {
+          "type": "string"
+        },
+        "certsSecret": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "image",
+        "settingsConfigMap",
+        "logbackConfigMap",
+        "passwordsSecret",
+        "certsSecret"
+      ]
+    },
+    "OttProperties": {
+      "properties": {
+        "ott": {
+          "oneOf": [
+            {
+              "properties": { "enabled": { "const": false } }
+            },
+            {
+              "allOf": [
+                {
+                  "properties": { "enabled": { "const": true } }
+                },
+                {
+                  "$ref": "#/definitions/OttConfig"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "required": [ "ott" ]
+    },
+    "CertsFromSecretsListItem": {
+      "properties": {
+        "hostNumber": { "type": "integer" }
+      },
+      "required": [ "hostNumber" ]
+    },
+    "CertsFromSecretsConfig": {
+      "properties": {
+        "list": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CertsFromSecretsListItem" },
+          "minItems": 1
+        }
+      },
+      "required": [ "list" ]
+    },
+    "CertsFromSecretsProperties": {
+      "properties": {
+        "certsFromSecrets": {
+          "oneOf": [
+            {
+              "properties": { "enabled": { "const": false } }
+            },
+            {
+              "allOf": [
+                { "properties": { "enabled": { "const": true } } },
+                { "$ref": "#/definitions/CertsFromSecretsConfig" }
+              ]
+            }
+          ]
+        }
+      },
+      "required": [ "certsFromSecrets" ]
+    },
+    "CertsFromSecmanListItem": {
+      "properties": {
+        "hostNumber": { "type": "integer" },
+        "secretPath": { "type": "string" },
+        "caCertPath": { "type": "string" },
+        "tlsCertPath": { "type": "string" },
+        "tlsKeyPath": { "type": "string" }
+      },
+      "required": [ "hostNumber", "secretPath", "caCertPath", "tlsCertPath", "tlsKeyPath" ]
+    },
+    "CertsFromSecmanConfig": {
+      "properties": {
+        "namespace": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "list": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CertsFromSecmanListItem" },
+          "minItems": 1
+        }
+      },
+      "required": [ "namespace", "role", "list" ]
+    },
+    "CertsFromSecmanProperties": {
+      "properties": {
+        "certsFromSecman": {
+          "oneOf": [
+            {
+              "properties": { "enabled": { "const": false } }
+            },
+            {
+              "allOf": [
+                { "properties": { "enabled": { "const": true } } },
+                { "$ref": "#/definitions/CertsFromSecmanConfig" }
+              ]
+            }
+          ]
+        }
+      },
+      "required": [ "certsFromSecman" ]
+    },
+    "CommonProperties": {
+      "properties": {
+        "namePrefix": {
+          "type": "string"
+        },
+        "istioControlPlane": {
+          "type": "string"
+        },
+        "proxyImage": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "namePrefix",
+        "istioControlPlane",
+        "proxyImage"
+      ]
+    }
+  },
+  "allOf": [
+    { "$ref": "#/definitions/CommonProperties" },
+    { "$ref": "#/definitions/OttProperties" },
+    { "$ref": "#/definitions/CertsFromSecretsProperties" },
+    { "$ref": "#/definitions/CertsFromSecmanProperties" }
+  ]
+}

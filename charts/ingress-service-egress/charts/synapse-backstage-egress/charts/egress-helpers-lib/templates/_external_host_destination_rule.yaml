@@ -1,0 +1,29 @@
+{{/* Input: .Release, .Chart, .context */}}
+{{- define "egress.external_host_destination_rule" }}
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: external-host{{ .context.hostNumber }}-dr
+  labels:
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  exportTo:
+    - .
+  host: {{ .context.host.externalHost }}
+  trafficPolicy:
+    portLevelSettings:
+      - port:
+          number: {{ .context.host.externalPort }}
+        {{- if .context.externalMtls }}
+        tls:
+          mode: 'MUTUAL'
+          caCertificates: {{ .context.certPaths.caCert }}
+          clientCertificate: {{ .context.certPaths.certsCrt }}
+          privateKey: {{ .context.certPaths.certsKey }}
+          {{- if .context.needsSni }}
+          sni: {{ .context.host.externalHost }}
+          {{- end }}
+        {{- end }}
+{{- end }}

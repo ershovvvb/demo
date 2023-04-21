@@ -1,0 +1,23 @@
+{{/* Input: .Release, .Chart, .context */}}
+{{- define "ingress.route" }}
+kind: Service
+apiVersion: v1
+metadata:
+  name: ingress-gw{{.context.hostNumber}}-svc
+  annotations:
+    kubernetes.io/elb.class: union
+    kubernetes.io/session-affinity-mode: SOURCE_IP
+    kubernetes.io/elb.id: 21ab07da-0ada-451e-b10d-45754b680519
+    kubernetes.io/elb.subnet-id: 2f5be158-9862-4758-8d39-a8abbc3a3ba2
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+    - name: {{.context.host.ext.protocol}}-{{.context.host.ext.port}}
+      protocol: TCP
+      port: {{.context.host.ext.port}}
+      targetPort: {{.context.host.ext.port}}
+  selector:
+    app: ingressgateway-{{.Release.Namespace}}
+    istio: ingressgateway-{{.Release.Namespace}}
+  type: LoadBalancer
+{{- end }}{{/* define "ingress.route" */}}

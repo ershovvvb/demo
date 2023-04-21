@@ -1,0 +1,67 @@
+{{- $ingress_const := .Values.ingress_const }}
+
+{{- range $hostNumber, $host := .Values.hosts }}
+{{- if not $host.skip }}
+
+{{- $hostCerts := (eq $host.spec.ext.useCerts "Custom") | ternary
+      $host.spec.ext.certs
+      $.Values.defaultCerts
+}}
+
+{{- $certFilenames := (eq $host.spec.ext.useCerts "SecMan") | ternary
+      (dict
+        "caCert" $host.spec.ext.caCertName
+        "certsCrt" $host.spec.ext.certName
+        "certsKey" $host.spec.ext.keyName)
+      (dict
+        "caCert" "ca-chain.cert.pem"
+        "certsCrt" "tls.crt"
+        "certsKey" "tls.key")
+}}
+{{- $certPaths := (dict
+      "caCert" (printf "/etc/istio/ingressgateway%d-ca-certs/%s" $hostNumber (index $certFilenames "caCert"))
+      "certsCrt" (printf "/etc/istio/ingressgateway%d-certs/%s" $hostNumber (index $certFilenames "certsCrt"))
+      "certsKey" (printf "/etc/istio/ingressgateway%d-certs/%s" $hostNumber (index $certFilenames "certsKey"))
+) }}
+
+{{- $context := dict
+      "hostNumber" $hostNumber
+      "host" $host.spec
+      "fqdn" (printf "%s.%s.%s" $host.spec.ext.host $host.spec.ext.shard $.Values.cluster )
+      "externalMtls" (index $ingress_const.externalMtls $host.spec.ext.protocol)
+      "certs" $hostCerts
+      "certPaths" $certPaths
+}}
+{{- $scope := dict
+      "Chart" $.Chart
+      "Release" $.Release
+      "context" $context
+}}
+
+---
+{{ template "ingress.service" $scope }}
+
+---
+{{ template "ingress.gateway" $scope }}
+
+---
+{{ template "ingress.route" $scope }}
+
+---
+{{ template "ingress.virtual_service" $scope }}
+
+{{- if (and
+      $context.externalMtls
+      (ne $context.host.ext.useCerts "SecMan")
+) }}
+---
+{{ template "ingress.gateway_certs" $scope }}
+{{- end }}
+
+{{- if (and $.Values.ott.enabled $context.host.ext.ottEnabled ) }}
+---
+{{ template "ingress.ott_envoy_filter" $scope }}
+{{- end }}
+
+{{- end }}{{/* if not $host.skip */}}
+{{- end }}{{/* range $hostNumber, $host := $ingress.hosts */}}

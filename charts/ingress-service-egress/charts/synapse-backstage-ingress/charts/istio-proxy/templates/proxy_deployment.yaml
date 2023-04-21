@@ -1,0 +1,363 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Values.namePrefix }}-{{ .Release.Namespace }}
+    app.kubernetes.io/component: gateways
+    app.kubernetes.io/instance: {{ .Values.istioControlPlane }}
+    app.kubernetes.io/name: gateways
+    app.kubernetes.io/part-of: istio
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    heritage: Tiller
+    istio: {{ .Values.namePrefix }}-{{ .Release.Namespace }}
+    release: istio
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+  name: {{ .Values.namePrefix }}-{{ .Release.Namespace }}
+spec:
+  progressDeadlineSeconds: 1200
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: {{ .Values.namePrefix }}-{{.Release.Namespace}}
+      istio: {{ .Values.namePrefix }}-{{.Release.Namespace}}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        {{- if contains "in" $.Values.namePrefix }}
+        inject.istio.io/templates: gateway
+        prometheus.io/path: "/stats/prometheus"
+        prometheus.io/port: "15020"
+        prometheus.io/scrape: "true"
+        sidecar.istio.io/inject: "true"
+        {{- else }}
+        sidecar.istio.io/inject: "false"
+        {{- end }}
+        {{- range $key, $value := .Values.commonPodAnnotations }}
+        {{ $key | quote }}: {{ $value | quote }}
+        {{- end }}
+        {{- if .Values.certsFromSecman.enabled }}
+        {{- range $certInfo := .Values.certsFromSecman.list }}
+        vault.hashicorp.com/agent-inject-secret-{{ $certInfo.caCertPath }}: "true"
+        vault.hashicorp.com/agent-inject-secret-{{ $certInfo.tlsCertPath }}: "true"
+        vault.hashicorp.com/agent-inject-secret-{{ $certInfo.tlsKeyPath }}: "true"
+        vault.hashicorp.com/agent-inject-template-{{ $certInfo.caCertPath }}: |
+          {{ printf "{{- with secret %q -}}" $certInfo.secretPath }}
+          {{ printf "{{ base64decode (index .Data %q) }}" $certInfo.caCertPath }}
+          {{ printf "{{- end }}" }}
+        vault.hashicorp.com/agent-inject-template-{{ $certInfo.tlsCertPath }}: |
+          {{ printf "{{- with secret %q -}}" $certInfo.secretPath }}
+          {{ printf "{{ base64decode (index .Data %q) }}" $certInfo.tlsCertPath }}
+          {{ printf "{{- end }}" }}
+        vault.hashicorp.com/agent-inject-template-{{ $certInfo.tlsKeyPath }}: |
+          {{ printf "{{- with secret %q -}}" $certInfo.secretPath }}
+          {{ printf "{{ base64decode (index .Data %q) }}" $certInfo.tlsKeyPath }}
+          {{ printf "{{- end }}" }}
+        vault.hashicorp.com/secret-volume-path-{{ $certInfo.caCertPath }}: >
+          /etc/istio/{{ $.Values.namePrefix }}{{ $certInfo.hostNumber }}-ca-certs
+        vault.hashicorp.com/secret-volume-path-{{ $certInfo.tlsCertPath }}: >
+          /etc/istio/{{ $.Values.namePrefix }}{{ $certInfo.hostNumber }}-certs
+        vault.hashicorp.com/secret-volume-path-{{ $certInfo.tlsKeyPath }}: >
+          /etc/istio/{{ $.Values.namePrefix }}{{ $certInfo.hostNumber }}-certs
+        {{- end }}{{/* range .Values.certsFromSecman.list */}}
+        {{- end }}{{/* if .Values.certsFromSecman.enabled */}}
+      creationTimestamp: null
+      labels:
+        app: {{ .Values.namePrefix }}-{{.Release.Namespace}}
+        heritage: Tiller
+        istio: {{ .Values.namePrefix }}-{{.Release.Namespace}}
+        release: istio
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - preference:
+                matchExpressions:
+                  - key: beta.kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+              weight: 2
+            - preference:
+                matchExpressions:
+                  - key: beta.kubernetes.io/arch
+                    operator: In
+                    values:
+                      - ppc64le
+              weight: 2
+            - preference:
+                matchExpressions:
+                  - key: beta.kubernetes.io/arch
+                    operator: In
+                    values:
+                      - s390x
+              weight: 2
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: beta.kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                      - ppc64le
+                      - s390x
+      containers:
+        - args:
+            - proxy
+            - router
+            - --domain
+            - $(POD_NAMESPACE).svc.cluster.local
+            - --proxyLogLevel=warning
+            - --proxyComponentLogLevel=misc:error
+            - --log_output_level=default:info
+            - --serviceCluster
+            - {{ .Values.namePrefix }}-{{.Release.Namespace}}.$(POD_NAMESPACE)
+            - --trust-domain=cluster.local
+          env:
+            - name: JWT_POLICY
+              value: third-party-jwt
+            - name: PILOT_CERT_PROVIDER
+              value: istiod
+            - name: CA_ADDR
+              value: istiod.{{.Values.istioControlPlane}}.svc:15012
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: INSTANCE_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+            - name: SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.serviceAccountName
+            - name: CANONICAL_SERVICE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.labels['service.istio.io/canonical-name']
+            - name: CANONICAL_REVISION
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.labels['service.istio.io/canonical-revision']
+            - name: ISTIO_META_WORKLOAD_NAME
+              value: {{ .Values.namePrefix }}-{{.Release.Namespace}}
+            - name: ISTIO_META_OWNER
+              value: kubernetes://apis/apps/v1/namespaces/{{.Release.Namespace}}/deployments/{{ .Values.namePrefix }}-{{.Release.Namespace}}
+            - name: ISTIO_META_MESH_ID
+              value: cluster.local
+            - name: PROXY_CONFIG
+              value: |
+                {"discoveryAddress":"istiod.{{.Values.istioControlPlane}}.svc:15012","tracing":{"zipkin":{"address":"jaeger-collector.{{.Values.istioControlPlane}}.svc:9411"},"tlsSettings":{"subjectAltNames":[]}},"proxyMetadata":{"DNS_AGENT":""}}
+            - name: ISTIO_META_ROUTER_MODE
+              value: sni-dnat
+            - name: ISTIO_META_CLUSTER_ID
+              value: Kubernetes
+          
+
+          {{- if contains "eg" $.Values.namePrefix }}
+          image: docker.io/istio/proxyv2:1.17.1
+          {{- else }}
+          image: {{ .Values.proxyImage }}
+          {{- end }}
+
+          imagePullPolicy: Always
+          name: istio-proxy
+          ports:
+            - containerPort: 15090
+              name: http-envoy-prom
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 30
+            httpGet:
+              path: /healthz/ready
+              port: 15021
+              scheme: HTTP
+            initialDelaySeconds: 1
+            periodSeconds: 2
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: 600m
+              memory: 900Mi
+            requests:
+              cpu: 400m
+              memory: 700Mi
+          securityContext:
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1337
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - name: istio-token
+              mountPath: /var/run/secrets/tokens
+            - mountPath: /etc/istio/proxy
+              name: istio-envoy
+            - mountPath: /var/run/secrets/istio
+              name: istiod-ca-cert
+            {{- if .Values.certsFromSecrets.enabled }}
+            {{- range $certInfo := .Values.certsFromSecrets.list }}
+            - mountPath: /etc/istio/{{ $.Values.namePrefix }}{{ $certInfo.hostNumber }}-ca-certs
+              name: {{ $.Values.namePrefix }}{{ $certInfo.hostNumber }}-ca-certs
+              readOnly: true
+            - mountPath: /etc/istio/{{ $.Values.namePrefix }}{{ $certInfo.hostNumber }}-certs
+              name: {{ $.Values.namePrefix }}{{ $certInfo.hostNumber }}-certs
+              readOnly: true
+            {{- end }}{{/* range .Values.certsFromSecrets.list */}}
+            {{- end }}{{/* if .Values.certsFromSecrets.enabled */}}
+            {{- if .Values.ott.enabled }}
+            - mountPath: /mnt/ott-uds-socket
+              name: ott-uds-socket
+            {{- end }}
+            - mountPath: /etc/istio/pod
+              name: podinfo
+            - name: workload-socket
+              mountPath: /var/run/secrets/workload-spiffe-uds
+            - name: credential-socket
+              mountPath: /var/run/secrets/credential-uds
+            - name: workload-certs
+              mountPath: /var/run/secrets/workload-spiffe-credentials
+            - name: istio-data
+              mountPath: /var/lib/istio/data
+        {{- if .Values.ott.enabled }}
+        - name: ott-sidecar
+          image: {{ .Values.ott.image }}
+          imagePullPolicy: Always
+          securityContext:
+            readOnlyRootFilesystem: true
+            privileged: false
+            runAsNonRoot: true
+          readinessProbe:
+            httpGet:
+              path: /healthy
+              port: 8086 #(значение параметра OTT_HTTP_PORT из ConfigMap c настройками OTT Sidecar)
+              scheme: HTTP
+            initialDelaySeconds: 3
+            timeoutSeconds: 3
+            periodSeconds: 1
+            successThreshold: 1
+            failureThreshold: 30
+          envFrom:
+            - secretRef:
+                name: {{ .Values.ott.passwordsSecret }}
+            - configMapRef:
+                name: {{ .Values.ott.settingsConfigMap }}
+          resources:
+            limits:
+              cpu: 700m
+              memory: 900Mi
+            requests:
+              cpu: 500m
+              memory: 700Mi
+          volumeMounts:
+            - name: ott-tmp
+              mountPath: /tmp
+            - name: ott-certs
+              readOnly: true
+              mountPath: /mnt/secrets
+            - name: ott-logback
+              readOnly: true
+              mountPath: /mnt/ott-logback
+            - name: ott-uds-socket
+              mountPath: /mnt/ott-uds-socket
+        {{- end }}{{/* if .Values.ott.enabled */}}
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 60
+      volumes:
+        - name: istio-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: istio-ca
+                  expirationSeconds: 43200
+                  path: istio-token
+            defaultMode: 292
+        - emptyDir: {}
+          name: istio-envoy
+        - name: workload-socket
+          emptyDir: { }
+        - name: credential-socket
+          emptyDir: { }
+        - name: workload-certs
+          emptyDir: { }
+        - name: istio-data
+          emptyDir: { }
+        - configMap:
+            defaultMode: 292
+            name: istio-ca-root-cert
+          name: istiod-ca-cert
+        {{- if .Values.certsFromSecrets.enabled }}
+        {{- range $certInfo := .Values.certsFromSecrets.list }}
+        - secret:
+            secretName: {{ $.Values.namePrefix }}{{ $certInfo.hostNumber }}-certs
+            defaultMode: 0400
+            optional: true
+          name: {{ $.Values.namePrefix }}{{ $certInfo.hostNumber }}-certs
+        - secret:
+        secretName: {{ $.Values.namePrefix }}{{ $certInfo.hostNumber }}-ca-certs
+        defaultMode: 0400
+        optional: true
+        name: {{ $.Values.namePrefix }}{{ $certInfo.hostNumber }}-ca-certs
+        {{- end }}{{/* range .Values.certsFromSecrets.list */}}
+        {{- end }}{{/* if .Values.certsFromSecrets.enabled */}}
+        {{- if .Values.ott.enabled }}
+        - emptyDir: {}
+        name: ott-tmp
+        - configMap:
+            name: {{ .Values.ott.logbackConfigMap }}
+            defaultMode: 0400
+          name: ott-logback
+        - secret:
+            secretName: {{ .Values.ott.certsSecret }}
+            defaultMode: 0400
+          name: ott-certs
+        - emptyDir:
+            medium: Memory
+          name: ott-uds-socket
+        {{- end }}
+        - downwardAPI:
+            defaultMode: 292
+            items:
+              - fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.labels
+                path: labels
+              - fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.annotations
+                path: annotations
+          name: podinfo

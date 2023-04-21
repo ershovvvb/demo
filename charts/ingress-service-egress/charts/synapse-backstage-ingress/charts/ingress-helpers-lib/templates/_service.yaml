@@ -1,0 +1,24 @@
+{{/* Input: .Release, .Chart, .context */}}
+{{- define "ingress.service" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingressgateway{{ .context.hostNumber }}-svc
+  labels:
+    app: ingressgateway-{{ .Release.Namespace }}
+    istio: ingressgateway-{{ .Release.Namespace }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  ports:
+    - name: status-port
+      port: 15021
+      protocol: TCP
+      targetPort: 15021
+    - name: {{.context.host.ext.protocol}}-{{.context.host.ext.port}}
+      port: {{.context.host.ext.port}}
+  selector:
+    app: ingressgateway-{{.Release.Namespace}}
+    istio: ingressgateway-{{.Release.Namespace}}
+{{- end }}{{/* define "ingress.service" */}}

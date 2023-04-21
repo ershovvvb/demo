@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "properties": {
+    "settingsConfigMap": { "type": "string" },
+    "logbackConfigMap": { "type": "string" },
+    "passwordsSecret": { "type": "string" },
+    "certsSecret": { "type": "string" },
+    "moduleId": { "type": "string" },
+    "operMode": {
+      "type": "string",
+      "enum": [
+        "sign",
+        "validate"
+      ]
+    },
+    "certstoreContent": { "type": "string" },
+    "certstorePwd": { "type": "string" },
+    "certstorePrivateKeyPwd": { "type": "string" },
+    "truststoreContent": { "type": "string" },
+    "truststorePwd": { "type": "string" },
+    "serviceHosts": { "type": "string" },
+    "serviceUrl": { "type": "string" }
+  },
+  "required": [
+    "settingsConfigMap",
+    "logbackConfigMap",
+    "passwordsSecret",
+    "certsSecret",
+    "moduleId",
+    "operMode"
+  ]
+}

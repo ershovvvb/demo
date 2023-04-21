@@ -1,0 +1,58 @@
+{{/* Input: .Release, .Chart, .context */}}
+{{- define "egress.virtual_service" }}
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: egressgateway{{ .context.hostNumber }}-{{ .Release.Namespace }}
+  labels:
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  exportTo:
+    - .
+  gateways:
+    - egressgateway{{ .context.hostNumber }}-gw
+    {{- if not .context.noMeshGateway }}
+    - mesh
+    {{- end }}
+  hosts:
+    - {{ or .context.accessHost .context.host.externalHost }}
+  {{ .context.virtualserviceMatcher }}:
+    {{- if not .context.noMeshGateway }}
+    - match:
+        - gateways:
+            - mesh
+          {{- if .context.needsAccessPort }}
+          port: {{ .context.host.accessPort }}
+          {{- else }}
+          port: {{ .context.host.externalPort }}
+          {{- end }}
+          {{- if eq .context.virtualserviceMatcher "tls" }}
+          sniHosts:
+            - {{ or .context.accessHost .context.host.externalHost }}
+          {{- end }}
+      route:
+        - destination:
+            host: egressgateway{{ .context.hostNumber }}-svc
+            port:
+              number: {{ .context.host.egressPort }}
+    {{- end }}
+    - match:
+        - gateways:
+            - egressgateway{{ .context.hostNumber }}-gw
+          port: {{ .context.host.egressPort }}
+          {{- if eq .context.virtualserviceMatcher "tls" }}
+          sniHosts:
+            - {{ or .context.accessHost .context.host.externalHost}}
+          {{- end }}
+      {{- if .context.rewriteHost }}
+      rewrite:
+        authority: {{ .context.rewriteHost }}
+      {{- end }}
+      route:
+        - destination:
+            host: {{ .context.host.externalHost }}
+            port:
+              number: {{ .context.host.externalPort }}
+{{- end }}

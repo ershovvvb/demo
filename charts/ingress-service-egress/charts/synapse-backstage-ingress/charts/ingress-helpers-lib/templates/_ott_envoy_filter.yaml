@@ -1,0 +1,38 @@
+{{/* Input: .Release, .Chart, .context */}}
+{{- define "ingress.ott_envoy_filter" }}
+kind: EnvoyFilter
+apiVersion: networking.istio.io/v1alpha3
+metadata:
+  name: ingressgateway{{ .context.hostNumber }}-ott-auth-filter
+  labels:
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: GATEWAY
+        listener:
+          filterChain:
+            filter:
+              name: envoy.http_connection_manager
+          portNumber: {{.context.host.ext.port}}
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.ext_authz
+          config:
+            failure_mode_allow: false
+            grpc_service:
+              google_grpc:
+                stat_prefix: ext_authz
+                target_uri: 'unix:/mnt/ott-uds-socket/ott.socket'
+              timeout: 2s
+            with_request_body:
+              allow_partial_message: true
+              max_request_bytes: 8192
+  workloadSelector:
+    labels:
+      app: ingressgateway-{{.Release.Namespace}}
+{{- end }}{{/* define "ingress.ott_envoy_filter" */}}

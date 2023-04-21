@@ -1,0 +1,48 @@
+ott:
+  enabled: #false  # Global switch for OTT authentication
+
+cluster:
+
+hosts:
+#  - skip: false
+#    spec:
+#      internalHost: test-app-svc
+#      internalPort: 8787
+#      internalPrefix: /synapse
+#      ext:
+#        host: ingress-test-app-helm
+#        shard: apps
+#        balance: roundrobin
+#        disableCookies: false
+#        timeoutMs: 60000
+#        port: 8338
+#        ottEnabled: false  # Enables OTT authentication per-host
+#        protocol: http
+#        useCerts: None
+
+subchart-istio-proxy-ingress:
+  namePrefix: #ingressgateway
+  istioControlPlane: #core-control-panel
+  hostCount: #5
+
+  proxyImage: #'proxyv2-rhel8@sha256:REDACTED'
+
+  ott:
+    enabled: #true  # Enables OTT sidecar
+    settingsConfigMap: #ott-settings
+    passwordsSecret: #ott-passwords
+    certsSecret: #ott-certs
+    image: #'ott-client-api@sha256:REDACTED'
+
+subchart-ott-configs-ingress:
+  enabled: #false  # Enables OTT sidecar configuration
+  settingsConfigMap: #ott-settings
+  logbackConfigMap: #ott-logback-config-map
+  passwordsSecret: #ott-passwords
+  certsSecret: #ott-certs
+  moduleId: #module-id
+  operMode: #validate
+
+subchart-test-app:
+  enabled: #false
+  image: #'rhel7-java-synapse-test-app-ci02001129@sha256:REDACTED'

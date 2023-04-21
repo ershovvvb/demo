@@ -1,0 +1,29 @@
+namePrefix: #ingressgateway
+
+istioControlPlane: #core-control-panel
+
+proxyImage: #'proxyv2-rhel8@sha256:REDACTED'
+
+certsFromSecrets:
+  #enabled: false
+  #list:
+  #  - hostNumber: 1
+
+certsFromSecman:
+  #enabled: false
+  #namespace: secman-store-name
+  #role: secman-role-name
+  #list:
+  #  - hostNumber: 0
+  #    secretPath: secret-for-first-ingress
+  #    caCertPath: first-ingress-ca.crt
+  #    tlsCertPath: first-ingress-tls.crt
+  #    tlsKeyPath: first-ingress-tls.key
+
+ott:
+  enabled: #true
+  image: #'ott-client-api@sha256:REDACTED'
+  settingsConfigMap: #ott-settings
+  logbackConfigMap: #logback-config-map
+  passwordsSecret: #ott-passwords
+  certsSecret: #ott-certs
